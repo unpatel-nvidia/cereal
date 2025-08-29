@@ -99,10 +99,22 @@ namespace cereal
       //! Reads size bytes of data from the input stream
       void loadBinary( void * const data, std::streamsize size )
       {
-        auto const readSize = itsStream.rdbuf()->sgetn( reinterpret_cast<char*>( data ), size );
+        auto totalRead = std::streamsize{0};
+        auto * const basePtr = reinterpret_cast<char*>( data );
 
-        if(readSize != size)
-          throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream! Read " + std::to_string(readSize));
+        while(totalRead < size)
+        {
+          itsStream.read( basePtr + totalRead, size - totalRead );
+          auto const readSize = itsStream.gcount();
+
+          if(readSize == 0)
+            break;
+
+          totalRead += readSize;
+        }
+
+        if(totalRead != size)
+          throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream! Read " + std::to_string(totalRead));
       }
 
     private:

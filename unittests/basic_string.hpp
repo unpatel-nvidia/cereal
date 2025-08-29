@@ -111,4 +111,27 @@ void test_string_all()
   }
 }
 
+template <class IArchive, class OArchive> inline
+void test_string_large()
+{
+  std::basic_string<char> o_string(10 * 1024 * 1024, '\0');
+
+  std::ostringstream os;
+  {
+    OArchive oar(os);
+    oar(o_string);
+  }
+
+  std::basic_string<char> i_string;
+
+  std::istringstream is(os.str());
+  {
+    IArchive iar(is);
+    iar(i_string);
+  }
+
+  CHECK_EQ(i_string.size(), o_string.size());
+  CHECK_EQ(i_string, o_string);
+}
+
 #endif // CEREAL_TEST_BASIC_STRING_H_

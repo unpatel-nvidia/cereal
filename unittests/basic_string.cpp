@@ -39,6 +39,16 @@ TEST_CASE("portable_binary_string")
   test_string_all<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
 }
 
+TEST_CASE("binary_string_large")
+{
+  test_string_large<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
+}
+
+TEST_CASE("portable_binary_string_large")
+{
+  test_string_large<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
+}
+
 TEST_CASE("xml_string_basic")
 {
   test_string_basic<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
