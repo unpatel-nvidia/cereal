@@ -190,6 +190,37 @@ std::ostream& operator<<(std::ostream& os, ThreeLA const & s)
   return os;
 }
 
+struct FourLA
+{
+  FourLA( int xx ) : x( xx ) {}
+
+  int x;
+
+  template <class Archive>
+  void serialize( Archive & ar )
+  { ar( x ); }
+
+  bool operator==( FourLA const & other ) const
+  { return x == other.x; }
+};
+
+std::ostream& operator<<(std::ostream& os, FourLA const & s)
+{
+  os << "[" << s.x << "]";
+  return os;
+}
+
+namespace cereal
+{
+  template <class Archive>
+  void load_and_construct( Archive & ar, cereal::construct<FourLA> & construct )
+  {
+    int xx;
+    ar( xx );
+    construct( xx );
+  }
+}
+
 template <class IArchive, class OArchive>
 void test_memory_load_construct()
 {
@@ -203,6 +234,7 @@ void test_memory_load_construct()
     std::unique_ptr<OneLA> o_unique1( new OneLA( random_value<int>(gen) ) );
     std::unique_ptr<TwoLA> o_unique2( new TwoLA( random_value<int>(gen) ) );
     auto o_shared3 = std::make_shared<ThreeLA>( random_value<int>(gen) );
+    auto o_shared4 = std::make_shared<FourLA>( random_value<int>(gen) );
     auto o_shared1v = std::make_shared<OneLAVersioned>( random_value<int>(gen) );
     auto o_shared2v = std::make_shared<TwoLAVersioned>( random_value<int>(gen) );
 
@@ -211,6 +243,7 @@ void test_memory_load_construct()
     std::unique_ptr<const OneLA> o_constUnique1( new OneLA( random_value<int>(gen) ) );
     std::unique_ptr<const TwoLA> o_constUnique2( new TwoLA( random_value<int>(gen) ) );
     auto o_constShared3 = std::make_shared<const ThreeLA>( random_value<int>(gen) );
+    auto o_constShared4 = std::make_shared<const FourLA>( random_value<int>(gen) );
     auto o_constShared1v = std::make_shared<const OneLAVersioned>( random_value<int>(gen) );
     auto o_constShared2v = std::make_shared<const TwoLAVersioned>( random_value<int>(gen) );
 
@@ -223,6 +256,7 @@ void test_memory_load_construct()
       oar( o_unique1 );
       oar( o_unique2 );
       oar( o_shared3 );
+      oar( o_shared4 );
       oar( o_shared1v );
       oar( o_shared2v );
       oar( o_constShared1 );
@@ -230,6 +264,7 @@ void test_memory_load_construct()
       oar( o_constUnique1 );
       oar( o_constUnique2 );
       oar( o_constShared3 );
+      oar( o_constShared4 );
       oar( o_constShared1v );
       oar( o_constShared2v );
     }
@@ -242,6 +277,7 @@ void test_memory_load_construct()
     decltype(o_unique1) i_unique1;
     decltype(o_unique2) i_unique2;
     decltype(o_shared3) i_shared3;
+    decltype(o_shared4) i_shared4;
     decltype(o_shared1v) i_shared1v;
     decltype(o_shared2v) i_shared2v;
     decltype(o_constShared1) i_constShared1;
@@ -249,6 +285,7 @@ void test_memory_load_construct()
     decltype(o_constUnique1) i_constUnique1;
     decltype(o_constUnique2) i_constUnique2;
     decltype(o_constShared3) i_constShared3;
+    decltype(o_constShared4) i_constShared4;
     decltype(o_constShared1v) i_constShared1v;
     decltype(o_constShared2v) i_constShared2v;
 
@@ -261,6 +298,7 @@ void test_memory_load_construct()
       iar( i_unique1 );
       iar( i_unique2 );
       iar( i_shared3 );
+      iar( i_shared4 );
       iar( i_shared1v );
       iar( i_shared2v );
       iar( i_constShared1 );
@@ -268,6 +306,7 @@ void test_memory_load_construct()
       iar( i_constUnique1 );
       iar( i_constUnique2 );
       iar( i_constShared3 );
+      iar( i_constShared4 );
       iar( i_constShared1v );
       iar( i_constShared2v );
     }
@@ -277,6 +316,7 @@ void test_memory_load_construct()
     CHECK_EQ( *o_unique1, *i_unique1 );
     CHECK_EQ( *o_unique2, *i_unique2 );
     CHECK_EQ( *o_shared3, *i_shared3 );
+    CHECK_EQ( *o_shared4, *i_shared4 );
     CHECK_EQ( *o_shared1v, *i_shared1v );
     CHECK_EQ(i_shared1v->v, 13u);
     CHECK_EQ( *o_shared2v, *i_shared2v );
@@ -290,6 +330,7 @@ void test_memory_load_construct()
     CHECK_EQ( *o_constUnique1, *i_constUnique1 );
     CHECK_EQ( *o_constUnique2, *i_constUnique2 );
     CHECK_EQ( *o_constShared3, *i_constShared3 );
+    CHECK_EQ( *o_constShared4, *i_constShared4 );
     CHECK_EQ( *o_constShared1v, *i_constShared1v );
     CHECK_EQ(i_constShared1v->v, 13u);
     CHECK_EQ( *o_constShared2v, *i_constShared2v );

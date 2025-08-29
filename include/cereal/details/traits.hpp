@@ -907,23 +907,35 @@ namespace cereal
     //! Creates a test for whether a non-member load_and_construct specialization exists
     /*! This creates a class derived from std::integral_constant that will be true if
         the type has the proper non-member function for the given archive. */
-    #define CEREAL_MAKE_HAS_NON_MEMBER_LOAD_AND_CONSTRUCT_TEST(test_name, versioned)                                            \
-    namespace detail                                                                                                            \
-    {                                                                                                                           \
-      template <class T, class A>                                                                                               \
-      struct has_non_member_##test_name##_impl                                                                                  \
-      {                                                                                                                         \
-        template <class TT, class AA>                                                                                           \
-        static auto test(int) -> decltype( LoadAndConstruct<TT>::load_and_construct(                                            \
-                                           std::declval<AA&>(), std::declval< ::cereal::construct<TT>&>() versioned ), yes());  \
-        template <class, class>                                                                                                 \
-        static no test( ... );                                                                                                  \
-        static const bool value = std::is_same<decltype( test<T, A>( 0 ) ), yes>::value;                                        \
-      };                                                                                                                        \
-    } /* end namespace detail */                                                                                                \
-    template <class T, class A>                                                                                                 \
-    struct has_non_member_##test_name :                                                                                         \
-      std::integral_constant<bool, detail::has_non_member_##test_name##_impl<typename std::remove_const<T>::type, A>::value> {};
+    #define CEREAL_MAKE_HAS_NON_MEMBER_LOAD_AND_CONSTRUCT_TEST(test_name, versioned) \
+    namespace detail \
+    { \
+      template <class T, class A> \
+      struct has_non_member_##test_name##_struct_impl \
+      { \
+        template <class TT, class AA> \
+        static auto test(int) -> decltype( LoadAndConstruct<TT>::load_and_construct( \
+                                           std::declval<AA&>(), std::declval< ::cereal::construct<TT>&>() versioned ), yes()); \
+        template <class, class> \
+        static no test( ... ); \
+        static const bool value = std::is_same<decltype( test<T, A>( 0 ) ), yes>::value; \
+      }; \
+      template <class T, class A> \
+      struct has_non_member_##test_name##_free_impl \
+      { \
+        template <class TT, class AA> \
+        static auto test(int) -> decltype( load_and_construct( \
+                                           std::declval<AA&>(), std::declval< ::cereal::construct<TT>&>() versioned ), yes()); \
+        template <class, class> \
+        static no test( ... ); \
+        static const bool value = std::is_same<decltype( test<T, A>( 0 ) ), yes>::value; \
+      }; \
+    } /* end namespace detail */ \
+    template <class T, class A> \
+    struct has_non_member_##test_name : \
+      std::integral_constant<bool, \
+        detail::has_non_member_##test_name##_struct_impl<typename std::remove_const<T>::type, A>::value || \
+        detail::has_non_member_##test_name##_free_impl<typename std::remove_const<T>::type, A>::value> {};
 
     // ######################################################################
     //! Non member load and construct check
@@ -1326,6 +1338,22 @@ namespace cereal
       std::is_base_of<TextArchive, detail::decay_archive<A>>::value>
     { };
   } // namespace traits
+// Wrapper to invoke either a non-member LoadAndConstruct struct specialization or
+// a free function discovered via ADL
+template <class T, class Archive>
+inline auto load_and_construct( Archive & ar, construct<T> & construct ) ->
+  decltype( LoadAndConstruct<T>::load_and_construct( ar, construct ), void() )
+{
+  LoadAndConstruct<T>::load_and_construct( ar, construct );
+}
+
+template <class T, class Archive>
+inline auto load_and_construct( Archive & ar, construct<T> & construct, const std::uint32_t version ) ->
+  decltype( LoadAndConstruct<T>::load_and_construct( ar, construct, version ), void() )
+{
+  LoadAndConstruct<T>::load_and_construct( ar, construct, version );
+}
+
 
   // ######################################################################
   namespace detail
@@ -1391,7 +1419,8 @@ namespace cereal
     {
       static void load_andor_construct( A & ar, construct<T> & construct )
       {
-        LoadAndConstruct<T>::load_and_construct( ar, construct );
+        using ::cereal::load_and_construct;
+        load_and_construct( ar, construct );
       }
     };
 
@@ -1402,7 +1431,8 @@ namespace cereal
       static void load_andor_construct( A & ar, construct<T> & construct )
       {
         const auto version = ar.template loadClassVersion<T>();
-        LoadAndConstruct<T>::load_and_construct( ar, construct, version );
+        using ::cereal::load_and_construct;
+        load_and_construct( ar, construct, version );
       }
     };
   } // namespace detail
